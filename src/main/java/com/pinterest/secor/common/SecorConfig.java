@@ -362,7 +362,11 @@ public class SecorConfig {
     }
 
     public String getMessageTimestampName() {
-        return getString("message.timestamp.name");
+        String key = "message.timestamp.name";
+        if (! mProperties.containsKey(key))
+            return null;
+        else 
+            return mProperties.getString(key);
     }
 
     public String getMessageTimestampNameSeparator() {
@@ -384,7 +388,8 @@ public class SecorConfig {
         while (keys.hasNext()) {
             String key = keys.next();
             String id = mProperties.getString(key);
-            perTopicNames.put(key.substring(prefix.length() + 1), id);
+            if (!key.equals(prefix))
+                perTopicNames.put(key.substring(prefix.length() + 1), id);
         }
         return perTopicNames;
     }    
