@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -38,6 +39,15 @@ public class ThriftUtil {
     private Map<String, Class<? extends TBase>> messageClassByTopic = new HashMap<String, Class<? extends TBase>>();
     @SuppressWarnings("rawtypes")
     private Class<? extends TBase> messageClassForAll;
+    private Short timestampIndexForAll;
+    private Map<String, Short> timestampIndexByTopic = new HashMap<String, Short>();
+    private boolean sameTimestampIndexForallTopics;
+    private String timestampNameForAll;
+    private Map<String, String> timestampNameByTopic = new HashMap<String, String>();
+    private boolean sameTimestampNameForallTopics;
+    private String timestampTypeForAll;
+    private Map<String, String> timestampTypeByTopic = new HashMap<String, String>();
+    private boolean sameTimestampTypeForallTopics;    
     private TProtocolFactory messageProtocolFactory;
 
     /**
@@ -51,6 +61,14 @@ public class ThriftUtil {
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public ThriftUtil(SecorConfig config) {
+        resolveMessageClass(config);
+        resolveProtocolFactory(config);
+        resolveTimestampIndex(config);
+        resolveTimestampType(config);
+        resolveTimestampName(config);
+    }
+    
+    private void resolveMessageClass(SecorConfig config) {
         Map<String, String> messageClassPerTopic = config.getThriftMessageClassPerTopic();
         
         for (Entry<String, String> entry : messageClassPerTopic.entrySet()) {
@@ -71,7 +89,9 @@ public class ThriftUtil {
                 LOG.error("Unable to load thrift message class", e);
             }
         }
+    }
 
+    private void resolveProtocolFactory(SecorConfig config) {
         try {
             String protocolName = config.getThriftProtocolClass();
 
@@ -119,4 +139,75 @@ public class ThriftUtil {
         TSerializer serializer = new TSerializer(messageProtocolFactory);
         return serializer.serialize(object);
     }
+    
+    private void resolveTimestampIndex(SecorConfig config) {
+        Map<String, Integer> tstampIndexPerTopic = config.getMessageTimestampIdPerTopic();
+            
+        if (tstampIndexPerTopic.isEmpty() && config.getMessageTimestampId() > 0) {
+            sameTimestampIndexForallTopics = true;
+            timestampIndexForAll = (short) config.getMessageTimestampId();
+            return;
+        }
+        
+        for (Entry<String, Integer> entry : tstampIndexPerTopic.entrySet()) {
+            String topic = entry.getKey();
+            sameTimestampIndexForallTopics = "*".equals(topic);
+    
+            if (sameTimestampIndexForallTopics) 
+                timestampIndexForAll = entry.getValue().shortValue();
+            else 
+                timestampIndexByTopic.put(topic, entry.getValue().shortValue());
+        }
+    }
+    
+    private void resolveTimestampName(SecorConfig config) {
+        Map<String, String> tstampNamePerTopic = config.getMessageTimestampNamePerTopic();
+        
+        if (tstampNamePerTopic.isEmpty() && StringUtils.isNotEmpty(config.getMessageTimestampName())) {
+            sameTimestampNameForallTopics = true;
+            timestampNameForAll = config.getMessageTimestampName();
+            return;
+        }
+        
+        for (Entry<String, String> entry : tstampNamePerTopic.entrySet()) {
+            String topic = entry.getKey();
+            sameTimestampNameForallTopics = "*".equals(topic);
+    
+            if (sameTimestampNameForallTopics)
+                timestampNameForAll = entry.getValue();
+            else
+                timestampNameByTopic.put(topic, entry.getValue());
+        }
+    }
+    
+    private void resolveTimestampType(SecorConfig config) {
+        Map<String, String> tstampTypePerTopic = config.getMessageTimestampTypePerTopic();
+        
+        if (tstampTypePerTopic.isEmpty() && StringUtils.isNotEmpty(config.getMessageTimestampType())) {
+            sameTimestampTypeForallTopics = true;
+            timestampTypeForAll = config.getMessageTimestampType();
+        }
+        
+        for (Entry<String, String> entry : tstampTypePerTopic.entrySet()) {
+            String topic = entry.getKey();
+            sameTimestampTypeForallTopics = "*".equals(topic);
+    
+            if (sameTimestampTypeForallTopics)
+                timestampTypeForAll = entry.getValue();
+            else
+                timestampTypeByTopic.put(topic, entry.getValue());
+        }
+    }
+    
+    public Short getTimestampIndex(String topic) {
+        return this.sameTimestampIndexForallTopics ? timestampIndexForAll : timestampIndexByTopic.get(topic);
+    }
+    
+    public String getTimestampName(String topic) {
+        return this.sameTimestampNameForallTopics ? timestampNameForAll : timestampNameByTopic.get(topic);
+    }
+    
+    public String getTimestampType(String topic) {
+        return this.sameTimestampTypeForallTopics ? timestampTypeForAll : timestampTypeByTopic.get(topic);
+    }    
 }
