@@ -17,6 +17,7 @@
 package com.pinterest.secor.common;
 
 import com.google.api.client.repackaged.com.google.common.base.Strings;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang.StringUtils;
@@ -470,19 +471,16 @@ public class SecorConfig {
 
     public Map<String, String> getProtobufMessageClassPerTopic() {
         String prefix = "secor.protobuf.message.class";
-        Iterator<String> keys = mProperties.getKeys(prefix);
-        Map<String, String> protobufClasses = new HashMap<String, String>();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            String className = mProperties.getString(key);
-            protobufClasses.put(key.substring(prefix.length() + 1), className);
-        }
-        return protobufClasses;
+        return getPropertyMapForPrefix(prefix);
     }
 
     public Map<String, String> getThriftMessageClassPerTopic() {
         String prefix = "secor.thrift.message.class";
-        Iterator<String> keys = mProperties.getKeys(prefix);
+        return getPropertyMapForPrefix(prefix);
+    }
+
+	private Map<String, String> getPropertyMapForPrefix(String prefix) {
+		Iterator<String> keys = mProperties.getKeys(prefix);
         Map<String, String> thriftClasses = new HashMap<String, String>();
         while (keys.hasNext()) {
             String key = keys.next();
@@ -490,7 +488,7 @@ public class SecorConfig {
             thriftClasses.put(key.substring(prefix.length() + 1), className);
         }
         return thriftClasses;
-    }    
+	}    
     
     public TimeZone getTimeZone() {
         String timezone = getString("secor.parser.timezone");
@@ -541,4 +539,9 @@ public class SecorConfig {
     public String getThriftProtocolClass() {
         return mProperties.getString("secor.thrift.protocol.class");
     }
+
+	public Map<String, String> getAvroMessageClassPerTopic() {
+        String prefix = "secor.avro.message.class";
+        return getPropertyMapForPrefix(prefix);
+	}
 }
