@@ -363,7 +363,11 @@ public class SecorConfig {
     }
 
     public String getMessageTimestampName() {
-        return getString("message.timestamp.name");
+        String key = "message.timestamp.name";
+        if (! mProperties.containsKey(key))
+            return null;
+        else 
+            return mProperties.getString(key);
     }
 
     public String getMessageTimestampNameSeparator() {
@@ -378,6 +382,43 @@ public class SecorConfig {
         return getString("message.timestamp.type");
     }
 
+    public Map<String, String> getMessageTimestampNamePerTopic() {
+        String prefix = "message.timestamp.name";
+        Iterator<String> keys = mProperties.getKeys(prefix);
+        Map<String, String> perTopicNames = new HashMap<String, String>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            String id = mProperties.getString(key);
+            if (!key.equals(prefix))
+                perTopicNames.put(key.substring(prefix.length() + 1), id);
+        }
+        return perTopicNames;
+    }    
+    
+    public Map<String, Integer> getMessageTimestampIdPerTopic() {
+        String prefix = "message.timestamp.id";
+        Iterator<String> keys = mProperties.getKeys(prefix);
+        Map<String, Integer> perTopicIds = new HashMap<String, Integer>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Integer id = mProperties.getInt(key);
+            perTopicIds.put(key.substring(prefix.length() + 1), id);
+        }
+        return perTopicIds;
+    }
+
+    public Map<String, String> getMessageTimestampTypePerTopic() {
+        String prefix = "message.timestamp.type";
+        Iterator<String> keys = mProperties.getKeys(prefix);
+        Map<String, String> perTopicTypes = new HashMap<String, String>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            String type = mProperties.getString(key);
+            perTopicTypes.put(key.substring(prefix.length() + 1), type);
+        }
+        return perTopicTypes;
+    }
+    
     public String getMessageTimestampInputPattern() {
         return getString("message.timestamp.input.pattern");
     }
