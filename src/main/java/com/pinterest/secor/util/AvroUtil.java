@@ -16,6 +16,7 @@ import org.apache.avro.reflect.ReflectData;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,12 @@ public class AvroUtil {
     private boolean allTopics;
     private Map<String, Schema> messageSchemaByTopic = new HashMap<String, Schema>();
     private Schema messageSchemaForAll;
+    private Short timestampIndexForAll;
+    private Map<String, Integer> timestampIndexByTopic = new HashMap<String, Integer>();
+    private boolean sameTimestampIndexForallTopics;
+    private String timestampTypeForAll;
+    private Map<String, String> timestampTypeByTopic = new HashMap<String, String>();
+    private boolean sameTimestampTypeForallTopics;    
 
     /**
      * Creates new instance of {@link AvroUtil}
@@ -117,4 +124,51 @@ public class AvroUtil {
     	}
     	return out.toByteArray();
     }
+    
+    private void resolveTimestampIndex(SecorConfig config) {
+        Map<String, Integer> tstampIndexPerTopic = config.getMessageTimestampIdPerTopic();
+            
+        if (tstampIndexPerTopic.isEmpty() && config.getMessageTimestampId() > 0) {
+            sameTimestampIndexForallTopics = true;
+            timestampIndexForAll = (short) config.getMessageTimestampId();
+            return;
+        }
+        
+        for (Entry<String, Integer> entry : tstampIndexPerTopic.entrySet()) {
+            String topic = entry.getKey();
+            sameTimestampIndexForallTopics = "*".equals(topic);
+    
+            if (sameTimestampIndexForallTopics) 
+                timestampIndexForAll = entry.getValue().shortValue();
+            else 
+                timestampIndexByTopic.put(topic, entry.getValue());
+        }
+    }
+    
+    private void resolveTimestampType(SecorConfig config) {
+        Map<String, String> tstampTypePerTopic = config.getMessageTimestampTypePerTopic();
+        
+        if (tstampTypePerTopic.isEmpty() && StringUtils.isNotEmpty(config.getMessageTimestampType())) {
+            sameTimestampTypeForallTopics = true;
+            timestampTypeForAll = config.getMessageTimestampType();
+        }
+        
+        for (Entry<String, String> entry : tstampTypePerTopic.entrySet()) {
+            String topic = entry.getKey();
+            sameTimestampTypeForallTopics = "*".equals(topic);
+    
+            if (sameTimestampTypeForallTopics)
+                timestampTypeForAll = entry.getValue();
+            else
+                timestampTypeByTopic.put(topic, entry.getValue());
+        }
+    }
+    
+    public Integer getTimestampIndex(String topic) {
+        return this.sameTimestampIndexForallTopics ? timestampIndexForAll : timestampIndexByTopic.get(topic);
+    }
+    
+    public String getTimestampType(String topic) {
+        return this.sameTimestampTypeForallTopics ? timestampTypeForAll : timestampTypeByTopic.get(topic);
+    }        
 }

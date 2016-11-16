@@ -16,14 +16,20 @@
  */
 package com.pinterest.secor.io.impl;
 
+
 import static org.junit.Assert.assertArrayEquals;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import junit.framework.TestCase;
 
+import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Decoder;
@@ -37,7 +43,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import com.google.api.client.util.GenericData;
 import com.google.common.io.Files;
+import com.pinterest.secor.avro.UnitTestEnum;
 import com.pinterest.secor.avro.UnitTestMessage;
 import com.pinterest.secor.common.LogFilePath;
 import com.pinterest.secor.common.SecorConfig;
@@ -118,5 +126,38 @@ public class AvroParquetFileReaderWriterFactoryTest extends TestCase {
         assertEquals(kv2.getOffset(), kvout.getOffset());
         assertArrayEquals(kv2.getValue(), kvout.getValue());
         assertEquals(msg2.getRequiredField().toString(), actual.getRequiredField().toString());
+    }
+    
+    public static void main(String[] args) throws IOException {
+        UnitTestMessage msg = new UnitTestMessage();
+        msg.setRequiredField("x");
+        msg.setEnumField(UnitTestEnum.SOME_OTHER_VALUE);
+        msg.setTimestamp(1L);
+        msg.setTimestampThree(2L);
+        msg.setTimestampTwo(3);
+        
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+        DatumWriter<UnitTestMessage> writer = new SpecificDatumWriter<UnitTestMessage>(ReflectData.get().getSchema(UnitTestMessage.class));
+        
+        writer.write(msg, encoder);
+        encoder.flush();
+        out.close();
+        byte[] data = out.toByteArray();
+        
+        List<Field> fields = new ArrayList<Schema.Field>(); 
+        fields.add(new Field("requiredField",Schema.create(Schema.Type.STRING),"",null));
+        Schema schema = Schema.createRecord("recordName", "Record Doc String", "recordNS", false);
+        schema.setFields(fields);
+        schema = schema.applyAliases(UnitTestMessage.SCHEMA$, schema);
+//        Schema schema = UnitTestMessage.SCHEMA$;
+ System.out.println(schema.toString(true));
+        Decoder decoder = DecoderFactory.get().binaryDecoder(data, null);
+        SpecificDatumReader<UnitTestMessage> reader = new SpecificDatumReader<UnitTestMessage>(schema);
+        
+        Object actual = reader.read(null, decoder);
+        System.out.println(actual);
+
+        
     }
 }
