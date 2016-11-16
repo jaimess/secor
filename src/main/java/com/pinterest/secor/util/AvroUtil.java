@@ -12,6 +12,7 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.reflect.ReflectData;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
@@ -39,9 +40,7 @@ public class AvroUtil {
     private static final Logger LOG = LoggerFactory.getLogger(AvroUtil.class);
 
     private boolean allTopics;
-    @SuppressWarnings("rawtypes")
     private Map<String, Schema> messageSchemaByTopic = new HashMap<String, Schema>();
-    @SuppressWarnings("rawtypes")
     private Schema messageSchemaForAll;
 
     /**
@@ -53,15 +52,16 @@ public class AvroUtil {
      *             when configuration option
      *             <code>secor.avro.message.class</code> is invalid.
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({ "unchecked" })
     public AvroUtil(SecorConfig config) {
         Map<String, String> messageSchemaPerTopic = config.getAvroMessageClassPerTopic();
         
         for (Entry<String, String> entry : messageSchemaPerTopic.entrySet()) {
             try {
                 String topic = entry.getKey();
-                Schema messageSchema = ((Class<? extends SpecificRecord>) Class.forName(entry.getValue()))
-                		.newInstance().getSchema();
+                
+                Class<? extends SpecificRecord> clazz = (Class<? extends SpecificRecord>) Class.forName(entry.getValue());
+                Schema messageSchema = ReflectData.get().getSchema(clazz);;
 
                 allTopics = "*".equals(topic);
 
@@ -74,11 +74,7 @@ public class AvroUtil {
                 }
             } catch (ClassNotFoundException e) {
                 LOG.error("Unable to load avro message class " + entry.getValue() , e);
-            } catch (InstantiationException e) {
-            	LOG.error("Unable to load avro message class " + entry.getValue(), e);
-			} catch (IllegalAccessException e) {
-				LOG.error("Unable to load avro message class " + entry.getValue(), e);
-			}
+            } 
         }
     }
 
@@ -91,12 +87,11 @@ public class AvroUtil {
      *         <code>null</code> in case valid class couldn't be found in the
      *         configuration.
      */
-    @SuppressWarnings("rawtypes")
     public Schema getMessageSchema(String topic) {
         return allTopics ? messageSchemaForAll : messageSchemaByTopic.get(topic);
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public SpecificRecord decodeMessage(String topic, byte[] payload) {
     	Decoder decoder = DecoderFactory.get().binaryDecoder(payload, null);
     	SpecificDatumReader reader = new SpecificDatumReader(this.getMessageSchema(topic));
@@ -108,7 +103,6 @@ public class AvroUtil {
 		}
     }
 
-    @SuppressWarnings("rawtypes")
     public byte[] encodeMessage(SpecificRecord object) {
     	ByteArrayOutputStream out = new ByteArrayOutputStream();
     	BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);

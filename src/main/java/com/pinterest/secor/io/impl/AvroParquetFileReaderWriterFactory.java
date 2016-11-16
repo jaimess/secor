@@ -9,8 +9,9 @@ import java.io.IOException;
 
 
 
+
+
 import org.apache.avro.Schema;
-import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -58,13 +59,13 @@ public class AvroParquetFileReaderWriterFactory implements FileReaderWriterFacto
         private ParquetReader<SpecificRecord> reader;
         private long offset;
 
+        @SuppressWarnings({ "deprecation", "unchecked" })
         public AvroParquetFileReader(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
             Path path = new Path(logFilePath.getLogFilePath());
             reader = AvroParquetReader.builder(path).build();
             offset = logFilePath.getOffset();
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
         public KeyValue next() throws IOException {
             SpecificRecord msg = reader.read();
@@ -87,7 +88,6 @@ public class AvroParquetFileReaderWriterFactory implements FileReaderWriterFacto
         private ParquetWriter writer;
         private String topic;
 
-        @SuppressWarnings({ "rawtypes", "unchecked" })
         public AvroParquetFileWriter(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
             Path path = new Path(logFilePath.getLogFilePath());
             CompressionCodecName codecName = CompressionCodecName.fromCompressionCodec(codec != null ? codec.getClass() : null);

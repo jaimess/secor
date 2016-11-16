@@ -1,0 +1,28 @@
+{
+  "type" : "record",
+  "name" : "UnitTestMessage",
+  "namespace" : "com.pinterest.secor.avro",
+  "fields" : [ {
+    "name" : "timestamp",
+    "type" : "long"
+  }, {
+    "name" : "requiredField",
+    "type" : "string"
+  }, {
+    "name" : "timestampTwo",
+    "type" : "int"
+  }, {
+    "name" : "optionalField",
+    "type" : ["null", "string"]
+  }, {
+    "name" : "enumField",
+    "type" : ["null", {
+      "type" : "enum",
+      "name" : "UnitTestEnum",
+      "symbols" : [ "SOME_VALUE", "SOME_OTHER_VALUE" ]
+    }]
+  }, {
+    "name" : "timestampThree",
+    "type" : "long"
+  } ]
+}
