@@ -8,11 +8,13 @@ import java.util.Map.Entry;
 
 import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.reflect.ReflectData;
+import org.apache.avro.specific.SpecificData;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
@@ -48,7 +50,8 @@ public class AvroUtil {
     private boolean sameTimestampIndexForallTopics;
     private String timestampTypeForAll;
     private Map<String, String> timestampTypeByTopic = new HashMap<String, String>();
-    private boolean sameTimestampTypeForallTopics;    
+    private boolean sameTimestampTypeForallTopics;   
+
 
     /**
      * Creates new instance of {@link AvroUtil}
@@ -60,31 +63,34 @@ public class AvroUtil {
      *             <code>secor.avro.message.class</code> is invalid.
      */
     @SuppressWarnings({ "unchecked" })
-    public AvroUtil(SecorConfig config) {
-        Map<String, String> messageSchemaPerTopic = config.getAvroMessageClassPerTopic();
+    public AvroUtil(SecorConfig config) {        
+        resolveMessageClass(config);
+        resolveTimestampIndex(config);
+        resolveTimestampType(config);
+    }
+    
+    private void resolveMessageClass(SecorConfig config) {
+        Map<String, String> messageClassPerTopic = config.getAvroMessageClassPerTopic();
         
-        for (Entry<String, String> entry : messageSchemaPerTopic.entrySet()) {
+        for (Entry<String, String> entry : messageClassPerTopic.entrySet()) {
             try {
                 String topic = entry.getKey();
-                
-                Class<? extends SpecificRecord> clazz = (Class<? extends SpecificRecord>) Class.forName(entry.getValue());
-                Schema messageSchema = ReflectData.get().getSchema(clazz);;
+                Schema messageSchema = ReflectData.get().getSchema(Class.forName(entry.getValue()));
 
                 allTopics = "*".equals(topic);
 
                 if (allTopics) {
                     messageSchemaForAll = messageSchema;
-                    LOG.info("Using avro message class: {} for all Kafka topics", messageSchema.getName());
+                    LOG.info("Using avro message class: {} for all Kafka topics", entry.getValue());
                 } else {
                     messageSchemaByTopic.put(topic, messageSchema);
-                    LOG.info("Using avro message class: {} for Kafka topic: {}", messageSchema.getName(), topic);
+                    LOG.info("Using avro message class: {} for Kafka topic: {}", entry.getValue(), topic);
                 }
             } catch (ClassNotFoundException e) {
-                LOG.error("Unable to load avro message class " + entry.getValue() , e);
-            } 
+                LOG.error("Unable to load avro message class", e);
+            }
         }
     }
-
     /**
      * Returns configured avro message class for the given Kafka topic
      * 
@@ -101,22 +107,23 @@ public class AvroUtil {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public SpecificRecord decodeMessage(String topic, byte[] payload) {
     	Decoder decoder = DecoderFactory.get().binaryDecoder(payload, null);
-    	SpecificDatumReader reader = new SpecificDatumReader(this.getMessageSchema(topic));
+    	
+    	DatumReader reader = SpecificData.get().createDatumReader(this.getMessageSchema(topic));
     	try {
-			return (SpecificRecord) reader.read(null, decoder);
+ 			return (SpecificRecord) reader.read(null, decoder);
 		} catch (IOException e) {
             LOG.error("cannot deserialize object", e);
             return null;
 		}
     }
 
-    public byte[] encodeMessage(SpecificRecord object) {
+    public byte[] encodeMessage(Object object) {
     	ByteArrayOutputStream out = new ByteArrayOutputStream();
     	BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-    	DatumWriter<SpecificRecord> writer = new SpecificDatumWriter<SpecificRecord>(object.getSchema());
+    	DatumWriter<SpecificRecord> writer = new SpecificDatumWriter<SpecificRecord>(((SpecificRecord)object).getSchema());
 
     	try {
-			writer.write(object, encoder);
+			writer.write((SpecificRecord) object, encoder);
 			encoder.flush();
 			out.close();
     	} catch (IOException e) {

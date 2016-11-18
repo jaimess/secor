@@ -56,7 +56,7 @@ public class AvroParquetFileReaderWriterFactory implements FileReaderWriterFacto
 
     protected class AvroParquetFileReader implements FileReader {
 
-        private ParquetReader<SpecificRecord> reader;
+        private ParquetReader<Object> reader;
         private long offset;
 
         @SuppressWarnings({ "deprecation", "unchecked" })
@@ -68,7 +68,7 @@ public class AvroParquetFileReaderWriterFactory implements FileReaderWriterFacto
 
         @Override
         public KeyValue next() throws IOException {
-            SpecificRecord msg = reader.read();
+            Object msg = reader.read();
 
             if (msg != null) 
             	return new KeyValue(offset++, avroUtil.encodeMessage(msg));
