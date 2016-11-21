@@ -189,3 +189,4 @@ If you have any questions or comments, you can reach us at [secor-users@googlegr
 [Openstack Swift]: http://swift.openstack.org
 [Protocol Buffers]: https://developers.google.com/protocol-buffers/
 [Parquet]: https://parquet.apache.org/
+[ORC]: https://orc.apache.org
