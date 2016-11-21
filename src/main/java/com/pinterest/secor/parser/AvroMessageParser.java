@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificRecord;
-import org.apache.commons.lang3.StringUtils;
 
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.message.Message;
@@ -38,12 +37,10 @@ public class AvroMessageParser extends TimestampedMessageParser {
     private final Map<String, AvroField> mFieldByTopic;
     
     private class AvroField {
-        private final String mFieldType;
         private final int mFieldIndex;
         
         public AvroField(int mFieldIndex, String mFieldType) {
             this.mFieldIndex = mFieldIndex;
-            this.mFieldType = mFieldType;
         }        
     }
 
