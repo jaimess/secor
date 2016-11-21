@@ -371,7 +371,7 @@ public class SecorConfig {
     }
 
     public String getMessageTimestampNameSeparator() {
-        return getString("message.timestamp.name.separator");
+        return getString("message.timestamp.nameSeparator");
     }
 
     public int getMessageTimestampId() {
