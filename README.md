@@ -90,6 +90,10 @@ Currently secor supports the following output formats
 
 - **[Parquet] Files (for Thrift messages)**: Columnar storage format. To use this output format, set `secor.file.reader.writer.factory=com.pinterest.secor.io.impl.ThriftParquetFileReaderWriterFactory` option. In addition, thrift message class per Kafka topic must be defined using option `secor.thrift.message.class.<topic>=<thrift class name>`. If all Kafka topics transfer the same thrift message type, set `secor.thrift.message.class.*=<thrift class name>`. It is asumed all messages use the same thrift protocol. Thrift protocol is set in `secor.thrift.protocol.class`.
 
+- **[Parquet] Files (for Avro messages)**: Columnar storage format. To use this output format, set `secor.file.reader.writer.factory=com.pinterest.secor.io.impl.AvroParquetFileReaderWriterFactory` option. In addition, avro message class per Kafka topic must be defined using option `secor.avro.message.class.<topic>=<avro class name>`. If all Kafka topics transfer the same avro message type, set `secor.avro.message.class.*=<avro class name>`.
+
+- **[ORC] Files (for Avro messages)**: Columnar storage format. To use this output format, set `secor.file.reader.writer.factory=com.pinterest.secor.io.impl.AvroORCFileReaderWriterFactory` option. In addition, thrift message class per Kafka topic must be defined using option `secor.avro.message.class.<topic>=<avro class name>`. If all Kafka topics transfer the same avro message type, set `secor.avro.message.class.*=<avro class name>`.
+
 - **Gzip upload format**:  To enable compression on uploaded files to the cloud, in `secor.common.properties` set `secor.compression.codec` to a valid compression codec implementing  `org.apache.hadoop.io.compress.CompressionCodec` interface, such as `org.apache.hadoop.io.compress.GzipCodec`.
 
 
