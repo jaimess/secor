@@ -16,6 +16,9 @@
  */
 package com.pinterest.secor.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -25,6 +28,7 @@ import org.apache.thrift.protocol.TProtocolFactory;
 
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.message.Message;
+import com.pinterest.secor.util.ThriftUtil;
 
 /**
  * Thrift message parser extracts date partitions from thrift messages.
@@ -33,16 +37,18 @@ import com.pinterest.secor.message.Message;
  */
 public class ThriftMessageParser extends TimestampedMessageParser {
     private final TDeserializer mDeserializer;
-    private final ThriftPath mThriftPath;
-    private final String mTimestampType;
-
+    private final ThriftUtil mThriftUtil;
+    private final Map<String, ThriftPath> mThrifpathByTopic;
+    
     class ThriftPath implements TFieldIdEnum {
         private final String mFieldName;
         private final short mFieldId;
+        private final String mFieldType;
 
-        public ThriftPath(final String fieldName, final short fieldId) {
+        public ThriftPath(final String fieldName, final short fieldId, final String fieldType) {
             this.mFieldName = fieldName;
             this.mFieldId = fieldId;
+            this.mFieldType = fieldType;
         }
 
         @Override
@@ -53,6 +59,10 @@ public class ThriftMessageParser extends TimestampedMessageParser {
         @Override
         public String getFieldName() {
             return mFieldName;
+        }
+
+        public String getmFieldType() {
+            return mFieldType;
         }
     }
 
@@ -70,19 +80,32 @@ public class ThriftMessageParser extends TimestampedMessageParser {
             protocolFactory = new TBinaryProtocol.Factory();
         
         mDeserializer = new TDeserializer(protocolFactory);
-        mThriftPath = new ThriftPath(mConfig.getMessageTimestampName(),(short) mConfig.getMessageTimestampId());
-        mTimestampType = mConfig.getMessageTimestampType();
+        mThriftUtil = new ThriftUtil(config);
+        mThrifpathByTopic = new HashMap<String, ThriftPath>();
     }
 
     @Override
     public long extractTimestampMillis(final Message message) throws TException {
+        ThriftPath thriftPath = getThriftPath(message.getTopic());
         long timestamp;
-        if ("i32".equals(mTimestampType)) {
-            timestamp = (long) mDeserializer.partialDeserializeI32(message.getPayload(), mThriftPath);
+        if ("i32".equals(thriftPath.mFieldType)) {
+            timestamp = (long) mDeserializer.partialDeserializeI32(message.getPayload(), thriftPath);
         } else {
-            timestamp = mDeserializer.partialDeserializeI64(message.getPayload(), mThriftPath);
+            timestamp = mDeserializer.partialDeserializeI64(message.getPayload(), thriftPath);
         }
 
         return toMillis(timestamp);
+    }
+    
+    private ThriftPath getThriftPath(String topic) {
+        ThriftPath thriftPath = mThrifpathByTopic.get(topic);
+        if (thriftPath != null)
+            return thriftPath;
+        else {
+            thriftPath = new ThriftPath(mThriftUtil.getTimestampName(topic),(short) mThriftUtil.getTimestampIndex(topic),
+                    mThriftUtil.getTimestampType(topic));
+            mThrifpathByTopic.put(topic, thriftPath);
+            return thriftPath;
+        }
     }
 }

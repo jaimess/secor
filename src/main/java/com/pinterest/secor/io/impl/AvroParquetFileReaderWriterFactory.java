@@ -2,15 +2,24 @@ package com.pinterest.secor.io.impl;
 
 import java.io.IOException;
 
+
+
+
+
+
+
+
+
+
+import org.apache.avro.Schema;
+import org.apache.avro.specific.SpecificRecord;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.thrift.ThriftParquetReader;
-import org.apache.parquet.thrift.ThriftParquetWriter;
-import org.apache.thrift.TBase;
-import org.apache.thrift.TException;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.avro.AvroParquetWriter;
 
 import com.pinterest.secor.common.LogFilePath;
 import com.pinterest.secor.common.SecorConfig;
@@ -18,62 +27,53 @@ import com.pinterest.secor.io.FileReader;
 import com.pinterest.secor.io.FileReaderWriterFactory;
 import com.pinterest.secor.io.FileWriter;
 import com.pinterest.secor.io.KeyValue;
-import com.pinterest.secor.util.ThriftUtil;
+import com.pinterest.secor.util.AvroUtil;
 
 /**
  * Adapted from
  * com.pinterest.secor.io.impl.ProtobufParquetFileReaderWriterFactory
- * Implementation for reading/writing thrift messages to/from Parquet files.
+ * Implementation for reading/writing avro messages to/from Parquet files.
  * 
  * @author jaime sastre (jaime.sastre.s@gmail.com)
  */
-public class ThriftParquetFileReaderWriterFactory implements FileReaderWriterFactory {
+public class AvroParquetFileReaderWriterFactory implements FileReaderWriterFactory {
 
-    private ThriftUtil thriftUtil;
+    private AvroUtil avroUtil;
 
-    public ThriftParquetFileReaderWriterFactory(SecorConfig config) {
-        thriftUtil = new ThriftUtil(config);
+    public AvroParquetFileReaderWriterFactory(SecorConfig config) {
+        avroUtil = new AvroUtil(config);
     }
 
     @Override
     public FileReader BuildFileReader(LogFilePath logFilePath, CompressionCodec codec) throws Exception {
-        return new ThriftParquetFileReader(logFilePath, codec);
+        return new AvroParquetFileReader(logFilePath, codec);
     }
 
     @Override
     public FileWriter BuildFileWriter(LogFilePath logFilePath, CompressionCodec codec) throws Exception {
-        return new ThriftParquetFileWriter(logFilePath, codec);
+        return new AvroParquetFileWriter(logFilePath, codec);
     }
 
-    protected class ThriftParquetFileReader implements FileReader {
+    protected class AvroParquetFileReader implements FileReader {
 
-        private ParquetReader<TBase<?, ?>> reader;
+        private ParquetReader<Object> reader;
         private long offset;
 
-        public ThriftParquetFileReader(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
+        @SuppressWarnings({ "deprecation", "unchecked" })
+        public AvroParquetFileReader(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
             Path path = new Path(logFilePath.getLogFilePath());
-            Class<? extends TBase> messageClass = thriftUtil.getMessageClass(logFilePath.getTopic());
-            reader = ThriftParquetReader.build(path).withThriftClass((Class<TBase<?, ?>>) messageClass).build();
+            reader = AvroParquetReader.builder(path).build();
             offset = logFilePath.getOffset();
         }
 
-        @SuppressWarnings("rawtypes")
         @Override
         public KeyValue next() throws IOException {
-            TBase msg = reader.read();
+            Object msg = reader.read();
 
-            if (msg != null) {
-                try {
-                    return new KeyValue(offset++, thriftUtil.encodeMessage(msg));
-                } catch (TException e) {
-                    throw new IOException("cannot write message", e);
-                } catch (InstantiationException e) {
-                    throw new IOException("cannot write message", e);
-                } catch (IllegalAccessException e) {
-                    throw new IOException("cannot write message", e);
-                }
-            }
-            return null;
+            if (msg != null) 
+            	return new KeyValue(offset++, avroUtil.encodeMessage(msg));
+            else
+            	return null;
         }
 
         @Override
@@ -82,18 +82,18 @@ public class ThriftParquetFileReaderWriterFactory implements FileReaderWriterFac
         }
     }
 
-    protected class ThriftParquetFileWriter implements FileWriter {
+    protected class AvroParquetFileWriter implements FileWriter {
 
         @SuppressWarnings("rawtypes")
         private ParquetWriter writer;
         private String topic;
 
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-        public ThriftParquetFileWriter(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
+        public AvroParquetFileWriter(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
             Path path = new Path(logFilePath.getLogFilePath());
             CompressionCodecName codecName = CompressionCodecName.fromCompressionCodec(codec != null ? codec.getClass() : null);
             topic = logFilePath.getTopic();
-            writer = new ThriftParquetWriter(path, thriftUtil.getMessageClass(topic), codecName);
+            Schema schema = avroUtil.getMessageSchema(topic);
+            writer = AvroParquetWriter.builder(path).withCompressionCodec(codecName).withSchema(schema).build();
         }
 
         @Override
@@ -106,7 +106,7 @@ public class ThriftParquetFileReaderWriterFactory implements FileReaderWriterFac
         public void write(KeyValue keyValue) throws IOException {
             Object message;
             try {
-                message = thriftUtil.decodeMessage(topic, keyValue.getValue());
+                message = avroUtil.decodeMessage(topic, keyValue.getValue());
                 writer.write(message);
             } catch (Exception e) {
                 throw new IOException("cannot write message", e);

@@ -17,6 +17,7 @@
 package com.pinterest.secor.common;
 
 import com.google.api.client.repackaged.com.google.common.base.Strings;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang.StringUtils;
@@ -362,11 +363,15 @@ public class SecorConfig {
     }
 
     public String getMessageTimestampName() {
-        return getString("message.timestamp.name");
+        String key = "message.timestamp.name";
+        if (! mProperties.containsKey(key))
+            return null;
+        else 
+            return mProperties.getString(key);
     }
 
     public String getMessageTimestampNameSeparator() {
-        return getString("message.timestamp.name.separator");
+        return getString("message.timestamp.nameSeparator");
     }
 
     public int getMessageTimestampId() {
@@ -377,6 +382,43 @@ public class SecorConfig {
         return getString("message.timestamp.type");
     }
 
+    public Map<String, String> getMessageTimestampNamePerTopic() {
+        String prefix = "message.timestamp.name";
+        Iterator<String> keys = mProperties.getKeys(prefix);
+        Map<String, String> perTopicNames = new HashMap<String, String>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            String id = mProperties.getString(key);
+            if (!key.equals(prefix))
+                perTopicNames.put(key.substring(prefix.length() + 1), id);
+        }
+        return perTopicNames;
+    }    
+    
+    public Map<String, Integer> getMessageTimestampIdPerTopic() {
+        String prefix = "message.timestamp.id";
+        Iterator<String> keys = mProperties.getKeys(prefix);
+        Map<String, Integer> perTopicIds = new HashMap<String, Integer>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Integer id = mProperties.getInt(key);
+            perTopicIds.put(key.substring(prefix.length() + 1), id);
+        }
+        return perTopicIds;
+    }
+
+    public Map<String, String> getMessageTimestampTypePerTopic() {
+        String prefix = "message.timestamp.type";
+        Iterator<String> keys = mProperties.getKeys(prefix);
+        Map<String, String> perTopicTypes = new HashMap<String, String>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            String type = mProperties.getString(key);
+            perTopicTypes.put(key.substring(prefix.length() + 1), type);
+        }
+        return perTopicTypes;
+    }
+    
     public String getMessageTimestampInputPattern() {
         return getString("message.timestamp.input.pattern");
     }
@@ -470,19 +512,16 @@ public class SecorConfig {
 
     public Map<String, String> getProtobufMessageClassPerTopic() {
         String prefix = "secor.protobuf.message.class";
-        Iterator<String> keys = mProperties.getKeys(prefix);
-        Map<String, String> protobufClasses = new HashMap<String, String>();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            String className = mProperties.getString(key);
-            protobufClasses.put(key.substring(prefix.length() + 1), className);
-        }
-        return protobufClasses;
+        return getPropertyMapForPrefix(prefix);
     }
 
     public Map<String, String> getThriftMessageClassPerTopic() {
         String prefix = "secor.thrift.message.class";
-        Iterator<String> keys = mProperties.getKeys(prefix);
+        return getPropertyMapForPrefix(prefix);
+    }
+
+	private Map<String, String> getPropertyMapForPrefix(String prefix) {
+		Iterator<String> keys = mProperties.getKeys(prefix);
         Map<String, String> thriftClasses = new HashMap<String, String>();
         while (keys.hasNext()) {
             String key = keys.next();
@@ -490,7 +529,7 @@ public class SecorConfig {
             thriftClasses.put(key.substring(prefix.length() + 1), className);
         }
         return thriftClasses;
-    }    
+	}    
     
     public TimeZone getTimeZone() {
         String timezone = getString("secor.parser.timezone");
@@ -541,4 +580,9 @@ public class SecorConfig {
     public String getThriftProtocolClass() {
         return mProperties.getString("secor.thrift.protocol.class");
     }
+
+	public Map<String, String> getAvroMessageClassPerTopic() {
+        String prefix = "secor.avro.message.class";
+        return getPropertyMapForPrefix(prefix);
+	}
 }

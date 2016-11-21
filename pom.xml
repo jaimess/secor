@@ -51,7 +51,7 @@
         <maven.compiler.target>1.6</maven.compiler.target>
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <parquet.version>1.8.1</parquet.version>
+        <parquet.version>1.9.0</parquet.version>
     </properties>
 
     <distributionManagement>
@@ -159,6 +159,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce-client-core</artifactId>
             <version>2.7.0</version>
         </dependency>
@@ -227,9 +232,14 @@
             <version>${parquet.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-avro</artifactId>
+            <version>${parquet.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.thrift</groupId>
             <artifactId>libthrift</artifactId>
-            <version>0.5.0</version>
+            <version>0.9.3</version>
         </dependency>
         <dependency>
             <groupId>com.twitter</groupId>
@@ -309,6 +319,16 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
             <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.orc</groupId>
+            <artifactId>orc-core</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.8.0</version>
         </dependency>
     </dependencies>
 
@@ -400,58 +420,58 @@
                         </configuration>
                     </execution>
                 </executions>
-		    </plugin>
-			<!-- Protobuf source generator plug-in -->
-			<plugin>
-				<groupId>com.github.os72</groupId>
-				<artifactId>protoc-jar-maven-plugin</artifactId>
-				<version>3.1.0</version>
-				<executions>
-					<execution>
-						<id>protobuf-test-sources</id>
-						<phase>generate-test-sources</phase>
-						<goals>
-							<goal>run</goal>
-						</goals>
-						<configuration>
-							<protocVersion>3.1.0</protocVersion>
-							<includeDirectories>
-								<include>src/test/protobuf</include>
-							</includeDirectories>
-							<inputDirectories>
-								<include>src/test/protobuf</include>
-							</inputDirectories>
+            </plugin>
+            <!-- Protobuf source generator plug-in -->
+            <plugin>
+                <groupId>com.github.os72</groupId>
+                <artifactId>protoc-jar-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>protobuf-test-sources</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <protocVersion>3.1.0</protocVersion>
+                            <includeDirectories>
+                                <include>src/test/protobuf</include>
+                            </includeDirectories>
+                            <inputDirectories>
+                                <include>src/test/protobuf</include>
+                            </inputDirectories>
                             <includeStdTypes>true</includeStdTypes>
-							<outputTargets>
-								<outputTarget>
-									<type>java</type>
-									<addSources>none</addSources>
-									<outputDirectory>target/generated-test-sources/protobuf/gen-java</outputDirectory>
-								</outputTarget>
-							</outputTargets>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>1.10</version>
-				<executions>
-					<execution>
-						<id>add-test-sources</id>
-						<phase>generate-test-sources</phase>
-						<goals>
-							<goal>add-test-source</goal>
-						</goals>
-						<configuration>
-							<sources>
-								<source>target/generated-test-sources/protobuf/gen-java</source>
-							</sources>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+                            <outputTargets>
+                                <outputTarget>
+                                    <type>java</type>
+                                    <addSources>none</addSources>
+                                    <outputDirectory>target/generated-test-sources/protobuf/gen-java</outputDirectory>
+                                </outputTarget>
+                            </outputTargets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.10</version>
+                <executions>
+                    <execution>
+                        <id>add-test-sources</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>target/generated-test-sources/protobuf/gen-java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Thrift source generate plugin. -->
             <plugin>
                 <groupId>com.twitter</groupId>
@@ -531,6 +551,22 @@
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro-maven-plugin</artifactId>
+                <version>1.8.1</version>
+                <executions>
+                    <execution>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>schema</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>${project.basedir}/src/test/avro/</sourceDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -549,8 +585,8 @@
                                 <goals>
                                     <goal>jar-no-fork</goal>
                                 </goals>
-                              </execution>
-                          </executions>
+                            </execution>
+                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -562,20 +598,20 @@
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
-                              </execution>
-                          </executions>
+                            </execution>
+                        </executions>
                     </plugin>
                     <plugin>
-                      <groupId>org.apache.maven.plugins</groupId>
-                      <artifactId>maven-gpg-plugin</artifactId>
-                      <version>1.5</version>
-                      <executions>
-                          <execution>
-                              <id>sign-artifacts</id>
-                              <phase>verify</phase>
-                              <goals>
-                                  <goal>sign</goal>
-                              </goals>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>

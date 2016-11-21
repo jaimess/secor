@@ -1,6 +1,7 @@
 package com.pinterest.secor.common;
 
 import org.apache.commons.configuration.ConfigurationException;
+
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 
