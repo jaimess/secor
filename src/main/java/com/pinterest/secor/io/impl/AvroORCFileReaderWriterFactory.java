@@ -177,8 +177,6 @@ public class AvroORCFileReaderWriterFactory implements FileReaderWriterFactory {
             return CompressionKind.LZ4;
         else if (codec instanceof SnappyCodec) 
             return CompressionKind.SNAPPY;
-        else if (codec instanceof SnappyCodec) 
-            return CompressionKind.SNAPPY;
         else if (codec instanceof LzoCodec) 
             return CompressionKind.LZO;
         else
