@@ -1,6 +1,9 @@
 package com.pinterest.secor.io.impl;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.avro.specific.SpecificRecord;
@@ -40,10 +43,23 @@ import com.pinterest.secor.util.orc.VectorColumnFiller;
 public class AvroORCFileReaderWriterFactory implements FileReaderWriterFactory {
 
     private AvroUtil avroUtil;
+    private Set<String> skipFields;
 
     public AvroORCFileReaderWriterFactory(SecorConfig config) {
         avroUtil = new AvroUtil(config);
+        skipFields = resolveSkipFields(config);
     }
+    
+    private Set<String> resolveSkipFields(SecorConfig config) {
+        String skipProperty = config.getORCSkipFields();
+        if (skipProperty == null)
+            return null;
+        else {
+            return new HashSet<String>(Arrays.asList(skipProperty.split(",")));
+        }
+    }
+
+
 
     @Override
     public FileReader BuildFileReader(LogFilePath logFilePath, CompressionCodec codec) throws Exception {
@@ -122,10 +138,9 @@ public class AvroORCFileReaderWriterFactory implements FileReaderWriterFactory {
         public AvroORCFileWriter(LogFilePath logFilePath, CompressionCodec codec) throws IOException {
             topic = logFilePath.getTopic();
             schema = avroUtil.getMessageSchema(topic);
-            
             Path path = new Path(logFilePath.getLogFilePath());
             Configuration conf = new Configuration();
-            TypeDescription typeDefinition = AvroSchemaConverter.generateTypeDefinition(schema);
+            TypeDescription typeDefinition = AvroSchemaConverter.generateTypeDefinition(schema, skipFields);
             writer = OrcFile.createWriter(path, OrcFile.writerOptions(conf)
                     .compress(resolveCompression(codec))
                     .setSchema(typeDefinition ));
@@ -143,7 +158,7 @@ public class AvroORCFileReaderWriterFactory implements FileReaderWriterFactory {
             rowIndex = batch.size++;
             SpecificRecord data = avroUtil.decodeMessage(topic, keyValue.getValue());
 
-            VectorColumnFiller.fillRow(rowIndex, schema, batch, data);
+            VectorColumnFiller.fillRow(rowIndex, schema, batch, data, skipFields);
             if (batch.size == batch.getMaxSize()) {
                 writer.addRowBatch(batch);
                 batch.reset();

@@ -1,6 +1,7 @@
 package com.pinterest.secor.util.orc;
 
 import java.nio.charset.Charset;
+import java.util.Set;
 
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -19,12 +20,16 @@ public class VectorColumnFiller {
     private final static Charset UTF8 = Charset.forName("UTF8");
     private final static byte[] EMPTY_BYTE_ARRAY = new byte[0];
     
-
     public static void fillRow(int row, Schema schema, VectorizedRowBatch batch, SpecificRecord data) {
+        fillRow(row, schema, batch, data);
+    }
+    
+    public static void fillRow(int row, Schema schema, VectorizedRowBatch batch, SpecificRecord data, Set<String> skipFields) {
         int fieldIndex = 0;
         int colIndex = 0;
         for (Field field : schema.getFields()) {
-            if (!skipField(field.schema())) {
+            if (!skipMappedField(field.schema()) && 
+                    (skipFields == null || !skipFields.contains(field.name()))) {
                 fillField(row, field.schema(), batch.cols[colIndex], data.get(fieldIndex));
                 colIndex++;
             }
@@ -32,13 +37,13 @@ public class VectorColumnFiller {
         }
     }
 
-    private static boolean skipField(Schema schema) {
+    private static boolean skipMappedField(Schema schema) {
         Type type = schema.getType();
         if (type.equals(Schema.Type.RECORD) || type.equals(Schema.Type.ENUM) || type.equals(Schema.Type.ARRAY)
                 || type.equals(Schema.Type.MAP) || type.equals(Schema.Type.FIXED)) 
             return true;
         else if (type.equals(Schema.Type.UNION))
-            return skipField(schema.getTypes().get(1));
+            return skipMappedField(schema.getTypes().get(1));
         else
             return false;
     }

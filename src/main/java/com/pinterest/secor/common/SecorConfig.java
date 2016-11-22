@@ -585,4 +585,8 @@ public class SecorConfig {
         String prefix = "secor.avro.message.class";
         return getPropertyMapForPrefix(prefix);
 	}
+	
+    public String getORCSkipFields() {
+        return mProperties.getString("orc.skip.fields"); 
+    }
 }

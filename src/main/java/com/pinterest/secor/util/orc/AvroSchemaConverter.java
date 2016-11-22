@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -31,14 +32,15 @@ import org.apache.parquet.schema.Type;
 public class AvroSchemaConverter {
     private static final Map<Schema, TypeDescription> cache = new HashMap<Schema, TypeDescription>();
     
-    public static TypeDescription generateTypeDefinition(Schema avroSch) {
+    public static TypeDescription generateTypeDefinition(Schema avroSch, Set<String> skipFields) {
         if (cache.containsKey(avroSch))
             return cache.get(avroSch);
         
         TypeDescription schema = TypeDescription.createStruct();
-        for (Field field :avroSch.getFields())
+        for (Field field :avroSch.getFields()) {
+            if (skipFields == null || !skipFields.contains(field.name()))
             schema = convertField(field.name(), field.schema(), schema);
-        
+        }
         cache.put(avroSch, schema);
         return schema;
     }
@@ -79,6 +81,10 @@ public class AvroSchemaConverter {
             throw new UnsupportedOperationException("Cannot convert Avro type " + type);
         }
         return struct;
+    }
+
+    public static TypeDescription generateTypeDefinition(Schema schema) {
+        return generateTypeDefinition(schema, null);
     }
     
 }

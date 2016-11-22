@@ -1,8 +1,6 @@
 package com.pinterest.secor.util.orc;
 
-import static org.mockito.Matchers.byteThat;
-
-import java.nio.charset.Charset;
+import java.util.Set;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
@@ -16,14 +14,17 @@ import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.bouncycastle.util.Arrays;
 
 public class AvroFiller {
-    private final static Charset UTF8 = Charset.forName("UTF8");
     
     public static void fill(int row, SpecificRecord avroObj, VectorizedRowBatch batch) {
-        
+        fill(row, avroObj, batch, null);
+    }
+    
+    public static void fill(int row, SpecificRecord avroObj, VectorizedRowBatch batch, Set<String> skipFields) {
         int colIndex = 0;
         int fieldIndex = 0;
         for (Field field : avroObj.getSchema().getFields()) {
-            if (!skipField(field.schema())) {
+            if (!skipField(field.schema())
+                    && (skipFields == null || !skipFields.contains(field.name()))) {
                 fillField(row, field.schema(), batch.cols[colIndex], fieldIndex, avroObj);
                 colIndex++;
             }
