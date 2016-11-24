@@ -16,16 +16,20 @@
  */
 package com.pinterest.secor.main;
 
+import java.util.LinkedList;
+
+import org.apache.commons.daemon.Daemon;
+import org.apache.commons.daemon.DaemonContext;
+import org.apache.commons.daemon.DaemonInitException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.pinterest.secor.common.OstrichAdminService;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.consumer.Consumer;
 import com.pinterest.secor.tools.LogFileDeleter;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.RateLimitUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.LinkedList;
 
 /**
  * Secor consumer.  See
@@ -41,15 +45,33 @@ import java.util.LinkedList;
  *
  * @author Pawel Garbacki (pawel@pinterest.com)
  */
-public class ConsumerMain {
+public class ConsumerMain  implements Daemon, Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(ConsumerMain.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length != 0) {
             System.err.println("Usage: java -Dconfig=<secor_properties> " +
                                "-Dlog4j.configuration=<log4j_properties> ConsumerMain");
             return;
         }
+        ConsumerMain main = new ConsumerMain();
+        main.start();
+    }
+
+    @Override
+    public void run() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void init(DaemonContext context) throws DaemonInitException, Exception {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void start() throws Exception {
         try {
             SecorConfig config = SecorConfig.load();
             OstrichAdminService ostrichService = new OstrichAdminService(config.getOstrichPort());
@@ -81,5 +103,14 @@ public class ConsumerMain {
             LOG.error("Consumer failed", t);
             System.exit(1);
         }
+    }
+
+    @Override
+    public void stop() throws Exception {
+        System.exit(0);
+    }
+
+    @Override
+    public void destroy() {
     }
 }
